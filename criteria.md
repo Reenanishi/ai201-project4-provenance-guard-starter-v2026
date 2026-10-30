@@ -42,63 +42,41 @@ Two things worth knowing before you pick numbers:
   a **miss**.
 
 ---
-## 1.
+## 1. False Positives
 
-<!-- Your criterion. It must name a number. -->
+**Target:** When I test 10 essays written by humans, my detector should incorrectly label no more than 1 as AI-generated with high confidence. This should be true in all three trials.
 
-
-
-**Why this target:**
-
-
+**Why this target:** I chose this because I don't want people to be wrongly accused of using AI when they wrote something themselves. I think allowing 1 mistake out of 10 is a fair starting point because the detector might not always be accurate.
 
 ---
 
-## 2.
+## 2. Score Spread
 
-<!-- Your criterion. -->
+**Target:** When I test AI-generated and human-written essays, the average AI score should be at least 0.20 higher than the average human score. This should happen in all three trials.
 
-
-
-**Why this target:**
-
-
+**Why this target:** I chose 0.20 because I want my detector to show a clear difference between AI and human writing. I think this is a reasonable goal because the detector might not always be accurate, but the scores should still be different.
 
 ---
 
-## 3.
+## 3.Label Coverage
 
-<!-- Your criterion. -->
+**Target:** When I test my detector, it should produce all three labels: high-confidence AI, high-confidence human, and unsure. I want all three labels to appear at least once in each of the three trials.
 
-
-
-**Why this target:**
-
-
+**Why this target:**  I chose this because I want my detector to recognize different types of writing. I also think it is important for the system to say unsure when it cannot confidently decide whether something was written by AI or a human.
 
 ---
 
-## 4.
+## 4. Appeals
 
-<!-- Your criterion. -->
+**Target:** When I test 5 valid appeals, all 5 should be recorded successfully and change the submission status to under_review. This should happen in all three trials.
 
-
-
-**Why this target:**
-
-
-
+ **Why this target:** I chose this because I think everyone should have a chance to appeal if the detector makes a mistake. I don't want anyone's appeal to be lost, so I want the system to record every valid appeal correctly.
 ---
 
-## 5.
+## 5.Bad Input
+Target: When I test 5 invalid requests, all 5 should return an appropriate error message without crashing the system. This should happen in all three trials.
 
-<!-- Your criterion. -->
-
-
-
-**Why this target:**
-
-
+Why this target: I chose this because users might accidentally submit empty text or forget to include required information. I want my system to handle these mistakes properly instead of crashing.
 
 ---
 
