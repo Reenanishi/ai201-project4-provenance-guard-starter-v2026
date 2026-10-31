@@ -36,45 +36,58 @@
 
 ## What This Does
 
-<!-- The path a submission takes, from arriving to the label a reader sees.
-     Six or seven steps — this is the trace you wrote in Milestone 1. -->
+For this project, I built a Flask app called Provenance Guard that checks if a piece of writing might be AI-generated or human-written.
 
+When someone submits their writing, this is what happens:
 
+1. The user sends their text and creator ID to the `/submit` endpoint.
+2. The app checks if the required information is there.
+3. The first signal looks at how predictable the text is using a language model.
+4. The second signal looks at writing style, like sentence lengths, word variety, and punctuation.
+5. Both scores are combined, with each one counting for 50% of the final score.
+6. Based on the final score, the app gives one of three results: `human`, `unsure`, or `ai`.
+7. The result is saved in the audit log so it can be checked later.
+
+I also added an `/appeal` endpoint. If someone disagrees with their result, they can explain why and request a review. The app saves their appeal with the status `under_review`.
+
+I know that AI detection is not always accurate, so I included an `unsure` result instead of forcing every submission to be labeled as human or AI.
 
 ---
 
 ## Signals and Scoring
 
-<!-- For each signal: what property it measures, why that might differ between
-     human and AI writing, and WHAT IT CAN'T SEE.
-
-     The blind spot is not optional. If you can't name it you don't understand
-     the signal yet — and unit 8's attack set is built out of blind spots. -->
 
 ### Signal one — the model signal
 
 **What it measures:**
+The first signal uses GPT-2 to check how predictable the writing is. It gives a score between 0 and 1. A higher score means the text looks more like AI writing.
 
 **Why that might differ between human and AI writing:**
+AI writing can sometimes follow patterns that are easier for a language model to predict. Human writing can be less predictable because people have different ways of expressing themselves.
 
 **What it can't see:**
+This signal cannot actually know who wrote the text. A person might write something that sounds very organized or predictable, and the model could mistake it for AI writing.
 
 ### Signal two — the style signal
 
 **What it measures:**
+The second signal looks at sentence lengths, word variety, and punctuation. It checks how much these things change throughout the writing.
 
 **Why that might differ between human and AI writing:**
+AI writing can sometimes have similar sentence lengths and repeated patterns. Human writing might have more variation, but that is not always true.
 
 **What it can't see:**
+Some people naturally write in a very consistent style. Also, someone can edit AI-generated text to make it sound different. This signal might not work as well with very short writing samples.
 
 ### The combining rule
 
-<!-- Write the rule in words, then give the numbers. What happens when the two
-     signals disagree? -->
-
 **The rule:**
+I decided to give both signals equal importance instead of depending on just one.
 
 **The numbers:**
+combined_score = (0.5 * model_score) + (0.5 * style_score)
+
+The final score is rounded to four decimal places.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -82,7 +95,23 @@
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
+I tested this text:
 
+"I was tired. Yesterday I walked all the way to school because I missed the bus. Done!"
+
+These were my results:
+
+Model score: 0.4994
+
+Style score: 0.3922
+
+Combined score: 0.4458
+
+Final result: unsure
+
+The model score was a little higher than the style score, so the two signals did not completely agree. Since I gave them equal weight, the final score ended up between them.
+
+I think this is better than trusting only one signal because neither one is perfect. If the app is not confident, I would rather have it say unsure than incorrectly label someone's writing as AI-generated.
 
 
 ---
@@ -96,16 +125,13 @@
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 to 0.35 (including 0.35) | This writing looks more likely to be human-written. |
+| unsure |Above 0.35 but below 0.65 |We cannot confidently tell whether this writing was created by a person or AI. |
+| high-confidence AI |0.65 to 1.00 (including 0.65) |This writing shows strong signs of AI-generated text. This result is not proof.|
 
 **Why I worded the "unsure" one this way:**
-<!-- It's the hardest of the three. It has to admit uncertainty without
-     sounding like an accusation, because the person reading it may well have
-     written every word themselves. -->
 
-
+I wanted the unsure message to be fair to the person submitting their writing. The app cannot always tell whether something was written by AI or a human. Instead of making a wrong accusation, I think it is better to say that the result is uncertain. Just because someone's writing looks similar to AI writing does not mean they used AI.
 
 ---
 
@@ -116,42 +142,80 @@
 
 **A submission**
 
-<!-- The response needs content_id, guess, confidence, label, AND both
-     signal scores - model_score and style_score. Unit 8's tools read those
-     two off the response, so leaving them out costs you next unit's
-     diagnostics. -->
+I tested my app by submitting a short piece of writing. I used port 5001 because port 5000 was already being used on my Mac.
+
 
 ```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
+curl -X POST http://127.0.0.1:5001/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text":"I was tired. Yesterday I walked all the way to school because I missed the bus. Done!","creator_id":"student1"}'
 ```
 
 ```json
-
+{
+  "confidence": 0.4458,
+  "content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc",
+  "guess": "unsure",
+  "label": "We cannot confidently tell whether this writing was created by a person or AI.",
+  "model_score": 0.4994,
+  "style_score": 0.3922
+}
 ```
 
 **An appeal**
+I also tested the appeal feature to make sure someone could ask for their result to be reviewed.
 
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc", "reasoning": "I wrote this myself and would like someone to review the result."}'
 ```
 
 ```json
-
+{
+  "content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc",
+  "status": "under_review",
+  "message": "Your appeal has been recorded and is awaiting review."
+}
 ```
+The app recorded the appeal and changed its status to under_review. It does not automatically change the original result.
 
 **What the log shows afterwards**
+I checked the audit log to make sure both the submission and the appeal were saved.
+
+
 
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+$ curl "http://127.0.0.1:5001/log?limit=2"
 ```
 
 ```json
-
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": 0.4458,
+      "content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc",
+      "creator_id": "student1",
+      "guess": "unsure",
+      "label": "We cannot confidently tell whether this writing was created by a person or AI.",
+      "model_score": 0.4994,
+      "status": "decided",
+      "style_score": 0.3922,
+      "timestamp": "2026-10-30T21:02:46+00:00"
+    },
+    {
+      "content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc",
+      "creator_id": "student1",
+      "event": "appeal",
+      "reasoning": "I wrote this myself and would like someone to review the result.",
+      "status": "under_review",
+      "timestamp": "2026-10-30T21:03:11+00:00"
+    }
+  ]
+}
 ```
+The log shows that my submission was saved first and my appeal was saved after that. Both entries have the same content_id, which shows they are connected.
 
 ---
 
@@ -160,14 +224,21 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 **Moment 1**
 
 - *What I asked for:*
+I used ChatGPT to help me understand some parts of the code and check for errors.
 - *What came back:*
+It gave me explanations and suggestions for fixing problems.
 - *What I changed:*
+I checked the suggestions and tested my code to see if it worked.
 
 **Moment 2**
 
 - *What I asked for:*
+I used Claude and ChatGPT to help test my project.
 - *What came back:*
+They suggested ways to test the submission, scoring, and appeal features.
 - *What I changed:*
+I ran the tests in my terminal and checked the responses and audit log.
+
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
