@@ -239,6 +239,10 @@ They suggested ways to test the submission, scoring, and appeal features.
 - *What I changed:*
 I ran the tests in my terminal and checked the responses and audit log.
 
+### Bonus Feature Planned: GET /content/<id>
+
+I plan to add an endpoint that lets someone check the current status of a submission using its content ID. I will test it and include the request and response here.
+
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
