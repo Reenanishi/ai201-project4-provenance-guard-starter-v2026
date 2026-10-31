@@ -286,6 +286,25 @@ def appeal():
 
 # ── Already works ─────────────────────────────────────────────────────────────
 
+@app.get("/content/<content_id>")
+def get_content(content_id):
+    entries = audit.entries_for(content_id)
+
+    if not entries:
+        return jsonify({
+            "error": "not_found",
+            "message": "Submission not found."
+        }), 404
+
+    latest = entries[-1]
+
+    return jsonify({
+        "content_id": content_id,
+        "status": latest.get("status"),
+        "guess": entries[0].get("guess"),
+        "label": entries[0].get("label")
+    })
+
 @app.get("/log")
 def get_log():
     """

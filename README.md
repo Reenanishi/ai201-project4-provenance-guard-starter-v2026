@@ -239,9 +239,31 @@ They suggested ways to test the submission, scoring, and appeal features.
 - *What I changed:*
 I ran the tests in my terminal and checked the responses and audit log.
 
+
 ### Bonus Feature Planned: GET /content/<id>
 
 I plan to add an endpoint that lets someone check the current status of a submission using its content ID. I will test it and include the request and response here.
+
+#### Bonus Feature Test
+
+I added a GET /content/<id> endpoint in app.py. It looks up a submission in the audit log and returns its latest status. This lets a writer check whether their submission is still decided or under review after an appeal.
+
+Request:
+
+```bash
+curl http://127.0.0.1:5001/content/ddb2133e-7576-44dc-b7f6-f68ec0519ecc
+```
+
+Response:
+
+```json
+{
+  "content_id": "ddb2133e-7576-44dc-b7f6-f68ec0519ecc",
+  "guess": "unsure",
+  "label": "We cannot confidently tell whether this writing was created by a person or AI.",
+  "status": "under_review"
+}
+```
 
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
